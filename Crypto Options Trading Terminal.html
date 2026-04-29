@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CryptoDesk — BTC/ETH Options Terminal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #080b10;
+    --bg-surface: #0d1117;
+    --bg-elevated: #131921;
+    --bg-card: #161e2a;
+    --bg-hover: #1a2332;
+    --border: #1e2d3d;
+    --border-bright: #243447;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00e676;
+    --accent-red: #ff4444;
+    --accent-amber: #ffaa00;
+    --accent-purple: #8b5cf6;
+    --text-primary: #e8edf5;
+    --text-secondary: #7a8fa6;
+    --text-muted: #4a5d70;
+    --call-green: #00c853;
+    --put-red: #ff3d00;
+    --profit: #00e676;
+    --loss: #ff4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  h1, h2, h3, .display { font-family: 'Syne', sans-serif; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+  .header {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-wrap: wrap;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--accent-cyan);
+  }
+  .logo span { color: var(--text-primary); }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    min-width: 140px;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border-bright); }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .stat-sub { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    background: var(--bg-surface);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  select, input[type="number"], input[type="text"] {
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+  select:hover, input:hover, select:focus, input:focus { border-color: var(--accent-cyan); }
+  .btn {
+    padding: 7px 16px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .btn-primary { background: var(--accent-cyan); border-color: var(--accent-cyan); color: #080b10; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-outline { background: transparent; border-color: var(--border-bright); color: var(--text-secondary); }
+  .btn-outline:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .btn-green { background: rgba(0,198,83,0.15); border-color: var(--call-green); color: var(--call-green); }
+  .btn-green:hover { background: rgba(0,198,83,0.25); }
+  .btn-red { background: rgba(255,61,0,0.15); border-color: var(--put-red); color: var(--put-red); }
+  .btn-red:hover { background: rgba(255,61,0,0.25); }
+  .filter-pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-bright);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .filter-pill.active { background: rgba(0,212,255,0.15); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .filter-pill:hover { border-color: var(--accent-cyan); color: var(--text-primary); }
+  .table-wrap {
+    overflow-x: auto;
+    margin: 0 20px 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  thead { position: sticky; top: 0; z-index: 10; }
+  thead tr { background: var(--bg-elevated); }
+  th {
+    padding: 10px 12px;
+    text-align: right;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  th.strike { text-align: center; }
+  th.call-h { color: rgba(0, 200, 83, 0.8); }
+  th.put-h { color: rgba(255, 61, 0, 0.8); }
+  td {
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 1px solid rgba(30,45,61,0.5);
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  td.strike { text-align: center; font-weight: 700; font-size: 13px; color: var(--text-primary); position: relative; }
+  tbody tr:hover { background: var(--bg-hover); }
+  tbody tr:last-child td { border-bottom: none; }
+  .atm-row td { background: rgba(0,212,255,0.04); }
+  .atm-row .strike { color: var(--accent-cyan); }
+  .call-col { color: var(--call-green) !important; }
+  .put-col { color: var(--put-red) !important; }
+  .state-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 16px; color: var(--text-secondary); }
+  .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--accent-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .badge-call { background: rgba(0,198,83,0.15); color: var(--call-green); }
+  .badge-put { background: rgba(255,61,0,0.15); color: var(--put-red); }
+  .badge-buy { background: rgba(0,230,118,0.15); color: var(--profit); }
+  .badge-sell { background: rgba(255,68,68,0.15); color: var(--loss); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(8,11,16,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: 12px; padding: 24px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary); }
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .form-input { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-bright); color: var(--text-primary); border-radius: 6px; padding: 9px 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; }
+  .form-input:focus { border-color: var(--accent-cyan); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; gap: 12px; flex-wrap: wrap; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .live-dot { width: 7px; height: 7px; background: var(--profit); border-radius: 50%; display: inline-block; animation: pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .divider-v { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+  .refresh-bar { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-muted); margin-left: auto; }
+  footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 11px; border-top: 1px solid var(--border); margin-top: 20px; }
+  .stat-cards { display: flex; gap: 12px; padding: 16px 20px; overflow-x: auto; flex-wrap: nowrap; }
+  .stat-cards::-webkit-scrollbar { display: none; }
+  .trade-btn-call, .trade-btn-put {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    font-weight: 700;
+    cursor: pointer;
+    background: transparent;
+    opacity: 1;
+  }
+  .trade-btn-call { border: 1px solid var(--call-green); color: var(--call-green); }
+  .trade-btn-put { border: 1px solid var(--put-red); color: var(--put-red); }
+  button:disabled { pointer-events: none; }
+  .trade-btn-call:disabled, .trade-btn-put:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-color: var(--text-muted) !important;
+    color: var(--text-muted) !important;
+    pointer-events: none;
+  }
+  @media (max-width: 768px) {
+    .header { padding: 10px 12px; }
+    .controls { padding: 10px 12px; }
+    .table-wrap { margin: 0 12px 16px; }
+    .section-header { padding: 12px; }
+    .stat-cards { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+const DERIBIT_BASE = 'https://www.deribit.com/api/v2/public';
+const DERIBIT_WS = 'wss://www.deribit.com/ws/api/v2';
+const INITIAL_FUND_INR = 100000;
+const FIXED_INR_RATE = 85;
+const LOT_SIZE_BTC = 0.01;
+
+async function apiFetch(method, params = {}) {
+  const url = new URL(`${DERIBIT_BASE}/${method}`);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
+}
+
+function currencyFromInstrument(instrumentName) {
+  return (instrumentName || 'BTC').split('-')[0] || 'BTC';
+}
+
+function indexNameForCurrency(currency) {
+  return `${String(currency || 'BTC').toLowerCase()}_usd`;
+}
+
+function extractIndexPrice(data) {
+  const v = data?.price ?? data?.index_price ?? data?.estimated_delivery_price ?? data?.mark_price;
+  const n = Number(v || 0);
+  return n > 0 ? n : null;
+}
+
+// Fetches the exact latest mark at close time, so closing does not depend on the 30s refresh cycle
+async function fetchLiveInstrumentMark(instrumentName) {
+  const currency = currencyFromInstrument(instrumentName);
+  const [ticker, indexData] = await Promise.all([
+    apiFetch('ticker', { instrument_name: instrumentName }),
+    apiFetch('get_index_price', { index_name: indexNameForCurrency(currency) })
+  ]);
+
+  const liveMark = Number(ticker?.mark_price || 0);
+  const liveBTC = Number(indexData?.index_price || 0);
+
+  if (!liveMark || liveMark <= 0) throw new Error('Live mark price unavailable for this instrument.');
+  if (!liveBTC || liveBTC <= 0) throw new Error(`Live ${currency} index price unavailable.`);
+
+  return { liveMark, liveBTC };
+}
+
+function fmt(n, dec=2) {
+  if (n==null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function fmtINR(n) {
+  if (n==null || isNaN(n)) return '—';
+  return '₹' + Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtK(n) {
+  if (n==null || isNaN(n)) return '—';
+  if (Math.abs(n)>=1e6) return (n/1e6).toFixed(2)+'M';
+  if (Math.abs(n)>=1e3) return (n/1e3).toFixed(1)+'K';
+  return fmt(n,0);
+}
+function markToUSD(markBTC, btcPrice) { return markBTC * btcPrice; }
+function markToINR(markBTC, btcPrice) { return markToUSD(markBTC, btcPrice) * FIXED_INR_RATE; }
+function premiumINR(markBTC, btcPrice, qty) { return markToUSD(markBTC, btcPrice) * LOT_SIZE_BTC * FIXED_INR_RATE * qty; }
+
+function calcMargin({ action, optType, strike, qty, entryPriceBTC, markPriceBTC, btcPrice }) {
+  const S = btcPrice || 0;
+  const K = strike || 0;
+  const ep = entryPriceBTC || 0;
+  const mp = markPriceBTC || ep;
+
+  if (action === 'buy') {
+    const premPaid = premiumINR(ep, S, qty);
+    return {
+      initialMarginINR: premPaid,
+      maintenanceMarginINR: premPaid * 0.75,
+      marginType: 'Full premium',
+      maxLossINR: premPaid,
+      maxProfitINR: null,
+      premiumINR: premPaid,
+    };
+  }
+
+  const otmAmount = optType==='call' ? Math.max(0, K-S) : Math.max(0, S-K);
+  const otmFrac = S > 0 ? otmAmount/S : 0;
+  const imFrac = Math.max(0.15 - otmFrac, 0.10);
+  const imPerLotUSD = imFrac * S * LOT_SIZE_BTC + mp * S * LOT_SIZE_BTC;
+  const totalIMINR = imPerLotUSD * qty * FIXED_INR_RATE;
+  const mmINR = (0.075 * S * LOT_SIZE_BTC + mp * S * LOT_SIZE_BTC) * qty * FIXED_INR_RATE;
+  const premRec = premiumINR(ep, S, qty);
+
+  return {
+    initialMarginINR: totalIMINR,
+    maintenanceMarginINR: mmINR,
+    marginType: `IM: ${(imFrac*100).toFixed(1)}% of notional`,
+    maxLossINR: null,
+    maxProfitINR: premRec,
+    premiumINR: premRec,
+  };
+}
+
+function calcPnL({ action, entryPriceBTC, exitPriceBTC, qty, btcPrice }) {
+  const raw = action==='sell'
+    ? (entryPriceBTC - exitPriceBTC) * qty * LOT_SIZE_BTC * btcPrice
+    : (exitPriceBTC - entryPriceBTC) * qty * LOT_SIZE_BTC * btcPrice;
+  return { pnlUSD: raw, pnlINR: raw * FIXED_INR_RATE };
+}
+
+function isZeroOI(side) {
+  return Number(side?.oi || 0) < 1;
+}
+
+const FILTERS = ['ALL','CALLS','PUTS','NTM','OTM'];
+
+function App() {
+  const [tab, setTab] = useState('chain');
+  const [selectedAsset, setSelectedAsset] = useState('BTC');
+  const [expiries, setExpiries] = useState([]);
+  const [selectedExpiry, setSelectedExpiry] = useState('');
+  const [optionChain, setOptionChain] = useState([]);
+  const [btcPrice, setBtcPrice] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [wsStatus, setWsStatus] = useState('connecting');
+  const wsRef = useRef(null);
+  const reconnectRef = useRef(null);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const [positions, setPositions] = useState(() => {
+  return JSON.parse(localStorage.getItem("positions")) || [];
+});
+  const [tradeHistory, setTradeHistory] = useState(() => {
+  return JSON.parse(localStorage.getItem("history")) || [];
+});
+  const [ledger, setLedger] = useState(() => {
+  return JSON.parse(localStorage.getItem("ledger")) || [{
+    id:1,
+    time:new Date().toISOString(),
+    type:'deposit',
+    desc:'Initial virtual fund deposit',
+    amountINR: INITIAL_FUND_INR
+  }];
+});
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closingPosition, setClosingPosition] = useState(null);
+  const [closePrice, setClosePrice] = useState('');
+  const [closeLoading, setCloseLoading] = useState(false);
+  const [tradeForm, setTradeForm] = useState({ instrument:'', optType:'call', action:'sell', strike:'', qty:1, price:'', sl:'', tp:'' });
+  const [tradeError, setTradeError] = useState('');
+  const refreshTimer = useRef(null);
+const autoCloseRef = useRef(new Set());
+const isFirstLoad = useRef(true);
+
+// Save to localStorage without overwriting saved data on first load
+useEffect(() => {
+  if (isFirstLoad.current) return;
+  localStorage.setItem("positions", JSON.stringify(positions));
+}, [positions]);
+
+useEffect(() => {
+  if (isFirstLoad.current) return;
+  localStorage.setItem("history", JSON.stringify(tradeHistory));
+}, [tradeHistory]);
+
+useEffect(() => {
+  if (isFirstLoad.current) return;
+  localStorage.setItem("ledger", JSON.stringify(ledger));
+}, [ledger]);
+
+useEffect(() => {
+  isFirstLoad.current = false;
+}, []);
+
+const resetAccount = () => {
+  if (!window.confirm('Reset account? This will delete all open positions, trade history and ledger.')) return;
+  localStorage.removeItem("positions");
+  localStorage.removeItem("history");
+  localStorage.removeItem("ledger");
+  setPositions([]);
+  setTradeHistory([]);
+  autoCloseRef.current = new Set();
+  setLedger([{
+    id: Date.now(),
+    time: new Date().toISOString(),
+    type: 'deposit',
+    desc: 'Initial virtual fund deposit',
+    amountINR: INITIAL_FUND_INR
+  }]);
+  setTab('chain');
+};
+
+useEffect(() => {
+  setExpiries([]);
+  setSelectedExpiry('');
+  setOptionChain([]);
+  setError(null);
+}, [selectedAsset]);
+
+  function parseExpiry(name) {
+    const p = name.split('-');
+    return p.length >= 2 ? p[1] : null;
+  }
+
+  function expiryToMs(exp) {
+    if (!exp) return null;
+    const mmap = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+    const day = parseInt(exp.slice(0,2));
+    const mon = mmap[exp.slice(2,5)];
+    const yr = 2000 + parseInt(exp.slice(5,7));
+    if (isNaN(day) || mon == null || isNaN(yr)) return null;
+    return Date.UTC(yr, mon, day, 8, 0, 0);
+  }
+
+  function settlementPriceBTC(pos, S) {
+    if (!pos || !S) return 0;
+    const intrinsicUSD = pos.optType === 'call'
+      ? Math.max(0, S - pos.strike)
+      : Math.max(0, pos.strike - S);
+    return intrinsicUSD / S;
+  }
+
+  const account = useMemo(() => {
+    const cashBalance = ledger.reduce((s,e) => s + e.amountINR, 0);
+    const positionsWithMark = positions.map(pos => {
+      const row = optionChain.find(r => r.callName===pos.instrument || r.putName===pos.instrument);
+      const markBTC = row ? (pos.optType==='call' ? row.call?.mark : row.put?.mark) : null;
+      const pnl = markBTC!=null
+        ? calcPnL({ action:pos.action, entryPriceBTC:pos.entryPriceBTC, exitPriceBTC:markBTC, qty:pos.qty, btcPrice:btcPrice||pos.btcPriceAtEntry })
+        : { pnlINR:0, pnlUSD:0 };
+      const margin = calcMargin({ action:pos.action, optType:pos.optType, strike:pos.strike, qty:pos.qty, entryPriceBTC:pos.entryPriceBTC, markPriceBTC:markBTC||pos.entryPriceBTC, btcPrice:btcPrice||pos.btcPriceAtEntry });
+      return { ...pos, markBTC, pnl, margin };
+    });
+    // Margin is actually locked in the ledger at trade entry.
+    // Therefore available balance is the ledger cash balance itself.
+    const totalMarginLocked = positionsWithMark.reduce((s,p) => s + (p.marginLockedINR || 0), 0);
+    const totalUnrealizedPnL = positionsWithMark.reduce((s,p) => s + (p.pnl?.pnlINR||0), 0);
+    const availableBalance = cashBalance;
+    const totalEquity = cashBalance + totalMarginLocked + totalUnrealizedPnL;
+    const realizedPnL = tradeHistory.reduce((s,t) => s + (t.realizedPnLINR||0), 0);
+    const marginBase = cashBalance + totalMarginLocked;
+    const marginUtilization = marginBase > 0 ? (totalMarginLocked/marginBase)*100 : 0;
+    return { cashBalance, totalMarginLocked, availableBalance, totalUnrealizedPnL, totalEquity, realizedPnL, marginUtilization, positionsWithMark };
+  }, [positions, tradeHistory, ledger, optionChain, btcPrice]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Use Deribit's instruments endpoint for expiry list.
+        // This shows all active expiries, even when book_summary misses some.
+        const instruments = await apiFetch('get_instruments',{currency:selectedAsset,kind:'option',expired:false});
+        const expiryMap = new Map();
+
+        instruments.forEach(ins => {
+          const e = parseExpiry(ins.instrument_name);
+          if (!e) return;
+          const ts = Number(ins.expiration_timestamp || expiryToMs(e) || 0);
+          expiryMap.set(e, ts);
+        });
+
+        const now = Date.now();
+        const sorted = Array.from(expiryMap.entries())
+          .filter(([exp, ts]) => ts >= now - 24*60*60*1000)
+          .sort((a,b) => a[1] - b[1])
+          .map(([exp]) => exp);
+
+        setExpiries(sorted.map(exp => ({
+          exp,
+          label: new Date(expiryMap.get(exp)).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase()
+        })));
+
+        if (sorted.length) setSelectedExpiry(prev => prev && sorted.includes(prev) ? prev : sorted[0]);
+      } catch(e) { setError('Failed to load expiries: ' + e.message); }
+    })();
+  }, [selectedAsset]);
+
+  const fetchChain = useCallback(async (expStr) => {
+    if (!expStr) return;
+    setLoading(true); setError(null);
+    try {
+      const [instruments, summaries, indexData] = await Promise.all([
+        apiFetch('get_instruments',{currency:selectedAsset,kind:'option',expired:false}),
+        apiFetch('get_book_summary_by_currency',{currency:selectedAsset,kind:'option'}),
+        apiFetch('get_index_price',{index_name:indexNameForCurrency(selectedAsset)})
+      ]);
+
+      setBtcPrice(indexData.index_price);
+
+      // Use get_instruments for the actual strike universe so every Deribit strike appears.
+      // Use book_summary only to fill live bid/ask/mark/OI/vol data.
+      const expIns = instruments.filter(ins => parseExpiry(ins.instrument_name) === expStr);
+      const smap = {};
+      summaries.forEach(s => { smap[s.instrument_name] = s; });
+
+      const strSet = new Set();
+      expIns.forEach(ins => {
+        const p = ins.instrument_name.split('-');
+        if (p.length >= 3) strSet.add(Number(p[2]));
+      });
+
+      const mapRow = s => s ? {
+        bid:s.bid_price, ask:s.ask_price, mark:s.mark_price, iv:s.mark_iv,
+        delta:s.greeks?.delta, gamma:s.greeks?.gamma, theta:s.greeks?.theta, vega:s.greeks?.vega,
+        oi:s.open_interest, vol:s.volume,
+      } : null;
+
+      setOptionChain(Array.from(strSet).sort((a,b)=>a-b).map(strike => ({
+        strike,
+        callName:`${selectedAsset}-${expStr}-${strike}-C`,
+        putName:`${selectedAsset}-${expStr}-${strike}-P`,
+        call:mapRow(smap[`${selectedAsset}-${expStr}-${strike}-C`]),
+        put:mapRow(smap[`${selectedAsset}-${expStr}-${strike}-P`]),
+      })));
+      setLastRefresh(new Date());
+    } catch(e) { setError('Failed to fetch chain: ' + e.message); }
+    finally { setLoading(false); }
+  }, [selectedAsset]);
+
+  useEffect(() => { if(selectedExpiry) fetchChain(selectedExpiry); }, [selectedExpiry, fetchChain]);
+  useEffect(() => {
+    if(refreshTimer.current) clearInterval(refreshTimer.current);
+    if(autoRefresh && selectedExpiry) refreshTimer.current = setInterval(() => fetchChain(selectedExpiry), 60000);
+    return () => clearInterval(refreshTimer.current);
+  }, [autoRefresh, selectedExpiry, fetchChain]);
+
+  // Runs independent of price refresh so expiry settlement triggers automatically while app is open.
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // WebSocket live prices: keeps selected option chain + open positions ticking in real time.
+  // REST refresh is still kept only for expiries/OI changes; marks/P&L update via WebSocket.
+  useEffect(() => {
+    if (!selectedAsset) return;
+
+    const indexChannel = `deribit_price_index.${indexNameForCurrency(selectedAsset)}`;
+
+    // Subscribe to every visible call/put instrument in the loaded chain + all open positions for this asset.
+    // Using 100ms keeps updates fast without making the browser too heavy.
+    const chainChannels = optionChain.flatMap(row => [
+      row.callName ? `ticker.${row.callName}.100ms` : null,
+      row.putName ? `ticker.${row.putName}.100ms` : null,
+    ]).filter(Boolean);
+
+    const positionChannels = positions
+      .filter(p => currencyFromInstrument(p.instrument) === selectedAsset)
+      .map(p => `ticker.${p.instrument}.100ms`);
+
+    const channels = Array.from(new Set([indexChannel, ...chainChannels, ...positionChannels]));
+    if (!channels.length) return;
+
+    let closedByEffect = false;
+    let heartbeatTimer = null;
+    let reconnectTimer = null;
+
+    const subscribeInChunks = (ws, allChannels) => {
+      const chunkSize = 80;
+      for (let i = 0; i < allChannels.length; i += chunkSize) {
+        const chunk = allChannels.slice(i, i + chunkSize);
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1000 + i,
+          method: 'public/subscribe',
+          params: { channels: chunk }
+        }));
+      }
+    };
+
+    const connect = () => {
+      if (closedByEffect) return;
+      setWsStatus('connecting');
+
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
+
+      const ws = new WebSocket(DERIBIT_WS);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setWsStatus('live');
+
+        // Deribit requires explicit subscription; just opening WS is not enough.
+        subscribeInChunks(ws, channels);
+
+        // Proper Deribit heartbeat keeps the connection alive.
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          id: 999,
+          method: 'public/set_heartbeat',
+          params: { interval: 20 }
+        }));
+
+        heartbeatTimer = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ jsonrpc:'2.0', id:9999, method:'public/test', params:{} }));
+          }
+        }, 15000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+
+          if (msg.error) {
+            console.warn('Deribit WS error:', msg.error);
+            setWsStatus('error');
+            return;
+          }
+
+          // Reply to Deribit heartbeat test requests.
+          if (msg.method === 'heartbeat') {
+            if (msg.params?.type === 'test_request' && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ jsonrpc:'2.0', id:Date.now(), method:'public/test', params:{} }));
+            }
+            return;
+          }
+
+          const params = msg.params;
+          if (!params || !params.channel) return;
+
+          const channel = params.channel;
+          const data = params.data || {};
+
+          if (channel.startsWith('deribit_price_index.')) {
+            const liveIndex = extractIndexPrice(data);
+            if (liveIndex) setBtcPrice(liveIndex);
+            return;
+          }
+
+          if (channel.startsWith('ticker.')) {
+            const instrumentName = data.instrument_name || channel.split('.')[1];
+            const liveMark = Number(data.mark_price || 0);
+            if (!instrumentName || !liveMark || liveMark <= 0) return;
+
+            const liveIndex = Number(data.index_price || data.underlying_price || 0);
+            if (liveIndex > 0 && currencyFromInstrument(instrumentName) === selectedAsset) {
+              setBtcPrice(liveIndex);
+            }
+
+            setOptionChain(prev => prev.map(row => {
+              if (row.callName === instrumentName) {
+                return {
+                  ...row,
+                  call: {
+                    ...(row.call || {}),
+                    mark: liveMark,
+                    bid: data.best_bid_price ?? data.bid_price ?? row.call?.bid,
+                    ask: data.best_ask_price ?? data.ask_price ?? row.call?.ask,
+                    iv: data.mark_iv ?? row.call?.iv,
+                    delta: data.greeks?.delta ?? row.call?.delta,
+                    gamma: data.greeks?.gamma ?? row.call?.gamma,
+                    theta: data.greeks?.theta ?? row.call?.theta,
+                    vega: data.greeks?.vega ?? row.call?.vega,
+                    oi: data.open_interest ?? row.call?.oi,
+                    vol: data.stats?.volume ?? data.volume ?? row.call?.vol,
+                  }
+                };
+              }
+              if (row.putName === instrumentName) {
+                return {
+                  ...row,
+                  put: {
+                    ...(row.put || {}),
+                    mark: liveMark,
+                    bid: data.best_bid_price ?? data.bid_price ?? row.put?.bid,
+                    ask: data.best_ask_price ?? data.ask_price ?? row.put?.ask,
+                    iv: data.mark_iv ?? row.put?.iv,
+                    delta: data.greeks?.delta ?? row.put?.delta,
+                    gamma: data.greeks?.gamma ?? row.put?.gamma,
+                    theta: data.greeks?.theta ?? row.put?.theta,
+                    vega: data.greeks?.vega ?? row.put?.vega,
+                    oi: data.open_interest ?? row.put?.oi,
+                    vol: data.stats?.volume ?? data.volume ?? row.put?.vol,
+                  }
+                };
+              }
+              return row;
+            }));
+          }
+        } catch (e) {
+          console.warn('WS parse error', e);
+        }
+      };
+
+      ws.onerror = () => setWsStatus('error');
+      ws.onclose = () => {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (closedByEffect) return;
+        setWsStatus('reconnecting');
+        reconnectTimer = setTimeout(connect, 1500);
+      };
+    };
+
+    connect();
+
+    return () => {
+      closedByEffect = true;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, [selectedAsset, selectedExpiry, optionChain.map(r => `${r.callName}|${r.putName}`).join(','), positions.map(p => p.instrument).join('|')]);
+
+  const prefillTrade = (name, optType, strike) => {
+    const row = optionChain.find(r => r.callName===name || r.putName===name);
+    const side = row ? (name.endsWith('-C') ? row.call : row.put) : null;
+    const markBTC = side?.mark || null;
+    const oi = Number(side?.oi || 0);
+
+    // Safety: OI = 0 strikes are blocked. UI also disables them with a lock icon.
+    if (oi < 1) {
+      return;
+    }
+
+    if (!markBTC || markBTC <= 0) {
+      alert('Mark price unavailable. Refresh the chain or choose another strike.');
+      return;
+    }
+    const optType2 = name.endsWith('-C') ? 'call' : 'put';
+    setTradeForm({ instrument:name, optType:optType2, action:'sell', strike:strike||0, qty:1, price:markBTC.toFixed(5), sl:'', tp:'' });
+    setTradeError('');
+    setShowTradeModal(true);
+  };
+
+  const executeTrade = () => {
+    setTradeError('');
+    const { instrument, optType, action, strike, qty, price, sl, tp } = tradeForm;
+    if (!instrument || !price || !qty) { setTradeError('Fill all fields.'); return; }
+    const pBTC = parseFloat(price), qN = parseInt(qty), kN = parseFloat(strike)||0;
+    if (isNaN(pBTC) || pBTC <= 0) { setTradeError('Invalid price.'); return; }
+    if (isNaN(qN) || qN < 1) { setTradeError('Qty must be ≥ 1.'); return; }
+    if (!btcPrice) { setTradeError(`${selectedAsset} price not loaded.`); return; }
+
+    const margin = calcMargin({ action, optType, strike:kN, qty:qN, entryPriceBTC:pBTC, markPriceBTC:pBTC, btcPrice });
+
+    const feeINR = 0.0003 * btcPrice * LOT_SIZE_BTC * qN * FIXED_INR_RATE;
+    const premINR = premiumINR(pBTC, btcPrice, qN);
+    const marginToLockINR = action === 'sell' ? margin.initialMarginINR : 0;
+    const requiredCashINR = action === 'sell'
+      ? marginToLockINR + feeINR
+      : premINR + feeINR;
+
+    if (account.availableBalance < requiredCashINR) {
+      setTradeError(`Insufficient funds. Need ${fmtINR(requiredCashINR)}, have ${fmtINR(account.availableBalance)}.`);
+      return;
+    }
+
+    const slINR = parseFloat(sl) > 0 ? parseFloat(sl) : null;
+    const tpINR = parseFloat(tp) > 0 ? parseFloat(tp) : null;
+    const id = Date.now();
+
+    setPositions(prev => [...prev, { id, asset:selectedAsset, instrument, optType, action, strike:kN, qty:qN, entryPriceBTC:pBTC, btcPriceAtEntry:btcPrice, entryTime:new Date().toISOString(), expiry:selectedExpiry, slINR, tpINR, marginLockedINR:marginToLockINR }]);
+    setLedger(prev => [
+      ...prev,
+      ...(action==='sell' ? [{ id:id+1, time:new Date().toISOString(), type:'margin_lock', desc:`Margin locked: ${instrument}`, amountINR:-marginToLockINR }] : []),
+      { id:id+2, time:new Date().toISOString(), type:'fee', desc:`Trading fee: ${instrument}`, amountINR:-feeINR },
+      ...(action==='sell' ? [{ id:id+3, time:new Date().toISOString(), type:'premium_credit', desc:`Premium received: ${instrument}`, amountINR:+premINR }] : []),
+      ...(action==='buy' ? [{ id:id+4, time:new Date().toISOString(), type:'premium_debit', desc:`Premium paid: ${instrument}`, amountINR:-premINR }] : []),
+    ]);
+
+    setShowTradeModal(false);
+    setTab('account');
+  };
+
+  const openCloseModal = (pos) => {
+    const row = optionChain.find(r => r.callName===pos.instrument || r.putName===pos.instrument);
+    const mark = row ? (pos.optType==='call' ? row.call?.mark : row.put?.mark) : null;
+    setClosingPosition(pos);
+    setClosePrice(mark ? mark.toFixed(5) : '');
+    setShowCloseModal(true);
+  };
+
+  const executeClose = async () => {
+    if (!closingPosition) return;
+
+    setCloseLoading(true);
+    try {
+      const pos = closingPosition;
+
+      // Fresh live price at the exact close moment
+      const { liveMark, liveBTC } = await fetchLiveInstrumentMark(pos.instrument);
+      const exitBTC = liveMark;
+      const S = liveBTC;
+
+      setBtcPrice(liveBTC);
+      setClosePrice(liveMark.toFixed(5));
+
+      const pnl = calcPnL({
+        action: pos.action,
+        entryPriceBTC: pos.entryPriceBTC,
+        exitPriceBTC: exitBTC,
+        qty: pos.qty,
+        btcPrice: S
+      });
+
+      const feeINR = 0.0003 * S * LOT_SIZE_BTC * pos.qty * FIXED_INR_RATE;
+      const exitPremiumINR = premiumINR(exitBTC, S, pos.qty);
+      const marginReleaseINR = pos.marginLockedINR || 0;
+
+      setPositions(prev => prev.filter(p => p.id !== pos.id));
+      setTradeHistory(prev => [...prev, {
+        ...pos,
+        exitPriceBTC: exitBTC,
+        btcPriceAtExit: S,
+        exitTime: new Date().toISOString(),
+        realizedPnLINR: pnl.pnlINR,
+        realizedPnLUSD: pnl.pnlUSD,
+        note: 'Closed at live mark price'
+      }]);
+
+      setLedger(prev => [
+        ...prev,
+        ...(pos.action==='sell' ? [{ id:Date.now()+1, time:new Date().toISOString(), type:'margin_release', desc:`Margin released: ${pos.instrument}`, amountINR:+marginReleaseINR }] : []),
+        { id:Date.now()+2, time:new Date().toISOString(), type:'fee', desc:`Closing fee: ${pos.instrument}`, amountINR:-feeINR },
+        ...(pos.action==='sell'
+          ? [{ id:Date.now()+3, time:new Date().toISOString(), type:'premium_debit', desc:`Buy-back cost: ${pos.instrument}`, amountINR:-exitPremiumINR }]
+          : [{ id:Date.now()+3, time:new Date().toISOString(), type:'premium_credit', desc:`Exit value received: ${pos.instrument}`, amountINR:+exitPremiumINR }]),
+      ]);
+
+      setShowCloseModal(false);
+      setClosingPosition(null);
+    } catch (e) {
+      alert('Could not close at live price: ' + e.message);
+    } finally {
+      setCloseLoading(false);
+    }
+  };
+
+  const closePositionAtMark = (pos, exitBTC, S, note) => {
+    if (!pos || exitBTC == null || isNaN(exitBTC) || !S) return;
+
+    const pnl = calcPnL({
+      action: pos.action,
+      entryPriceBTC: pos.entryPriceBTC,
+      exitPriceBTC: exitBTC,
+      qty: pos.qty,
+      btcPrice: S
+    });
+
+    const feeINR = 0.0003 * S * LOT_SIZE_BTC * pos.qty * FIXED_INR_RATE;
+    const exitPremiumINR = premiumINR(exitBTC, S, pos.qty);
+    const marginReleaseINR = pos.marginLockedINR || 0;
+
+    setPositions(prev => prev.filter(p => p.id !== pos.id));
+    setTradeHistory(prev => [...prev, {
+      ...pos,
+      exitPriceBTC: exitBTC,
+      btcPriceAtExit: S,
+      exitTime: new Date().toISOString(),
+      realizedPnLINR: pnl.pnlINR,
+      realizedPnLUSD: pnl.pnlUSD,
+      note
+    }]);
+
+    setLedger(prev => [
+      ...prev,
+      ...(pos.action==='sell' ? [{ id:Date.now()+1, time:new Date().toISOString(), type:'margin_release', desc:`Margin released: ${pos.instrument}`, amountINR:+marginReleaseINR }] : []),
+      { id:Date.now()+2, time:new Date().toISOString(), type:'fee', desc:`Closing fee: ${pos.instrument}`, amountINR:-feeINR },
+      ...(pos.action==='sell'
+        ? [{ id:Date.now()+3, time:new Date().toISOString(), type:'premium_debit', desc:`Buy-back cost: ${pos.instrument}`, amountINR:-exitPremiumINR }]
+        : [{ id:Date.now()+3, time:new Date().toISOString(), type:'premium_credit', desc:`Exit value received: ${pos.instrument}`, amountINR:+exitPremiumINR }]),
+    ]);
+  };
+
+  useEffect(() => {
+    if (!btcPrice || account.positionsWithMark.length === 0) return;
+
+    account.positionsWithMark.forEach(pos => {
+      if (currencyFromInstrument(pos.instrument) !== selectedAsset) return;
+      const expMs = expiryToMs(pos.expiry);
+      const key = `EXP-${pos.id}`;
+      if (expMs && nowTick >= expMs && !autoCloseRef.current.has(key)) {
+        autoCloseRef.current.add(key);
+        const exitBTC = settlementPriceBTC(pos, btcPrice);
+        closePositionAtMark(pos, exitBTC, btcPrice, 'Auto Expiry Settlement');
+      }
+    });
+  }, [nowTick, btcPrice, account.positionsWithMark, selectedAsset]);
+
+  useEffect(() => {
+    if (!btcPrice || account.positionsWithMark.length === 0) return;
+
+    const triggers = [];
+
+    account.positionsWithMark.forEach(pos => {
+      if (!pos || pos.markBTC == null) return;
+      if (currencyFromInstrument(pos.instrument) !== selectedAsset) return;
+
+      const currentPnL = Number(pos.pnl?.pnlINR || 0);
+      const slValue = Number(pos.slINR || 0);
+      const tpValue = Number(pos.tpINR || 0);
+      let reason = null;
+      if (slValue > 0 && currentPnL <= -slValue) {
+        reason = `SL Hit (${fmtINR(slValue)})`;
+      } else if (tpValue > 0 && currentPnL >= tpValue) {
+        reason = `TP Hit (${fmtINR(tpValue)})`;
+      }
+
+      if (reason && !autoCloseRef.current.has(pos.id)) {
+        autoCloseRef.current.add(pos.id);
+        triggers.push({ pos, reason });
+      }
+    });
+
+
+    triggers.forEach(({ pos, reason }) => {
+      closePositionAtMark(pos, pos.markBTC, btcPrice, reason);
+    });
+  }, [account.positionsWithMark, btcPrice, selectedAsset]);
+
+  const expireWorthless = (pos) => {
+    const S = btcPrice || pos.btcPriceAtEntry;
+    const pnl = calcPnL({ action:pos.action, entryPriceBTC:pos.entryPriceBTC, exitPriceBTC:0, qty:pos.qty, btcPrice:S });
+    setPositions(prev => prev.filter(p => p.id !== pos.id));
+    setTradeHistory(prev => [...prev, { ...pos, exitPriceBTC:0, exitTime:new Date().toISOString(), realizedPnLINR:pnl.pnlINR, realizedPnLUSD:pnl.pnlUSD, note:'Expired worthless' }]);
+    setLedger(prev => [...prev, { id:Date.now()+1, time:new Date().toISOString(), type:'pnl_realized', desc:`Expired worthless: ${pos.instrument}`, amountINR:pnl.pnlINR }]);
+  };
+
+  const filteredChain = optionChain;
+
+  const expiryLabel = expiries.find(e=>e.exp===selectedExpiry)?.label || selectedExpiry || '—';
+  const tradePreview = useMemo(() => {
+    const { action, optType, strike, qty, price } = tradeForm;
+    const p=parseFloat(price), q=parseInt(qty), k=parseFloat(strike)||0;
+    if (!p || !q || !btcPrice) return null;
+    return calcMargin({ action, optType, strike:k, qty:q, entryPriceBTC:p, markPriceBTC:p, btcPrice });
+  }, [tradeForm, btcPrice]);
+
+  const ledgerLabel = { deposit:'DEPOSIT', margin_lock:'MARGIN LOCK', margin_release:'MARGIN RELEASE', premium_debit:'PREM DEBIT', premium_credit:'PREM CREDIT', pnl_realized:'P&L REALIZED', fee:'FEE' };
+
+  return (
+    <div>
+      <div className="header">
+        <div className="logo">CRYPTO<span>DESK</span></div>
+        <div className="divider-v"/>
+        <div style={{display:'flex',alignItems:'center',gap:6}}><span className="live-dot"/><span style={{color:'var(--text-muted)',fontSize:10}}>WS {wsStatus.toUpperCase()}</span></div>
+        {btcPrice && <div style={{display:'flex',alignItems:'baseline',gap:6}}>
+          <span style={{color:'var(--text-muted)',fontSize:10}}>{selectedAsset}/USD</span>
+          <span style={{fontFamily:'Syne',fontSize:18,fontWeight:700,color:'var(--accent-amber)'}}>${btcPrice.toLocaleString()}</span>
+          <span style={{color:'var(--text-muted)',fontSize:11}}>= {fmtINR(btcPrice*FIXED_INR_RATE)}</span>
+        </div>}
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+          <div style={{background:'rgba(0,212,255,0.08)',border:'1px solid rgba(0,212,255,0.25)', borderRadius:6,padding:'4px 12px',fontSize:11,color:'var(--accent-cyan)'}}>1 USD = ₹{FIXED_INR_RATE} · 1 lot = {LOT_SIZE_BTC} {selectedAsset}</div>
+          <button className="btn btn-outline" onClick={resetAccount} style={{fontSize:11,padding:'5px 10px',borderColor:'var(--accent-red)',color:'var(--accent-red)'}}>Reset Account</button>
+        </div>
+      </div>
+
+      <div className="stat-cards">
+        <div className="stat-card" style={{borderColor:'rgba(0,212,255,0.3)'}}><div className="stat-label">Total Equity</div><div className="stat-value" style={{color:'var(--accent-cyan)',fontSize:18}}>{fmtINR(account.totalEquity)}</div><div className="stat-sub">Cash + Locked Margin + Unrealized P&L</div></div>
+        <div className="stat-card"><div className="stat-label">Cash Balance</div><div className="stat-value" style={{fontSize:16}}>{fmtINR(account.cashBalance)}</div><div className="stat-sub">After fees & premiums</div></div>
+        <div className="stat-card"><div className="stat-label">Available Margin</div><div className="stat-value" style={{color:account.availableBalance<5000?'var(--loss)':'var(--profit)',fontSize:16}}>{fmtINR(account.availableBalance)}</div><div className="stat-sub">After locked margin</div></div>
+        <div className="stat-card"><div className="stat-label">Open Risk</div><div className="stat-value" style={{color:'var(--accent-amber)',fontSize:16}}>{fmtINR(account.totalMarginLocked)}</div><div className="stat-sub">Util: {account.marginUtilization.toFixed(1)}%</div></div>
+        <div className="stat-card"><div className="stat-label">Unrealized P&L</div><div className="stat-value" style={{color:account.totalUnrealizedPnL>=0?'var(--profit)':'var(--loss)',fontSize:16}}>{account.totalUnrealizedPnL>=0?'+':''}{fmtINR(account.totalUnrealizedPnL)}</div><div className="stat-sub">{account.positionsWithMark.length} open positions</div></div>
+        <div className="stat-card"><div className="stat-label">Realized P&L</div><div className="stat-value" style={{color:account.realizedPnL>=0?'var(--profit)':'var(--loss)',fontSize:16}}>{account.realizedPnL>=0?'+':''}{fmtINR(account.realizedPnL)}</div><div className="stat-sub">{tradeHistory.length} closed trades</div></div>
+        <div className="stat-card"><div className="stat-label">{selectedAsset} INR</div><div className="stat-value" style={{color:'var(--accent-amber)',fontSize:15}}>{btcPrice ? fmtINR(btcPrice*FIXED_INR_RATE) : '—'}</div><div className="stat-sub">{expiryLabel} · {optionChain.length} strikes</div></div>
+        <div className="stat-card"><div className="stat-label">P/C OI Ratio</div>{(()=>{ const cOI=optionChain.reduce((s,r)=>s+(r.call?.oi||0),0); const pOI=optionChain.reduce((s,r)=>s+(r.put?.oi||0),0); const ratio=cOI>0?pOI/cOI:null; const sc=ratio==null?'var(--text-muted)':ratio>1.2?'var(--put-red)':ratio<0.8?'var(--call-green)':'var(--accent-amber)'; return <><div className="stat-value" style={{color:sc,fontSize:16}}>{ratio!=null?ratio.toFixed(2):'—'}</div><div className="stat-sub" style={{color:sc}}>{ratio==null?'':ratio>1.2?'↑ Bearish':ratio<0.8?'↓ Bullish':'→ Neutral'}</div></>; })()}</div>
+      </div>
+
+      <div className="tabs">
+        {[['chain','Option Chain'],['account','Positions'],['history','Trade History'],['ledger','Ledger']].map(([k,l])=>(
+          <button key={k} className={`tab ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}{k==='account' && account.positionsWithMark.length>0 && <span style={{marginLeft:6,background:'var(--accent-cyan)',color:'#080b10',borderRadius:10,padding:'1px 6px',fontSize:10,fontWeight:700}}>{account.positionsWithMark.length}</span>}</button>
+        ))}
+      </div>
+
+      {tab==='chain' && <>
+        <div className="controls">
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            {['BTC','ETH'].map(asset => (
+              <button key={asset} className={`filter-pill ${selectedAsset===asset?'active':''}`} onClick={()=>setSelectedAsset(asset)}>{asset}</button>
+            ))}
+          </div>
+          <div className="divider-v"/>
+          <select value={selectedExpiry} onChange={e=>setSelectedExpiry(e.target.value)} style={{minWidth:150}}>{expiries.map(e=><option key={e.exp} value={e.exp}>{e.label}</option>)}</select>
+          <div className="refresh-bar">
+            <button className="btn btn-outline" onClick={()=>fetchChain(selectedExpiry)} disabled={loading}>{loading?'⟳ Refreshing…':'⟳ Refresh'}</button>
+            <label style={{display:'flex',alignItems:'center',gap:5,cursor:'pointer'}}><input type="checkbox" checked={autoRefresh} onChange={e=>setAutoRefresh(e.target.checked)} style={{width:'auto'}}/><span style={{color:'var(--text-muted)',fontSize:11}}>Chain sync 60s</span></label>
+            {lastRefresh && <span style={{color:'var(--text-muted)',fontSize:10}}>Updated {lastRefresh.toLocaleTimeString()}</span>}
+          </div>
+        </div>
+
+        {loading && !optionChain.length && <div className="state-box"><div className="spinner"/><span>Fetching options data…</span></div>}
+        {error && <div className="state-box"><span style={{color:'var(--loss)'}}>⚠ {error}</span><button className="btn btn-outline" onClick={()=>fetchChain(selectedExpiry)}>Retry</button></div>}
+        {!loading && !error && optionChain.length>0 && <div className="table-wrap"><table><thead>
+          <tr><th className="call-h" colSpan="7" style={{textAlign:'center',borderRight:'1px solid var(--border)'}}>CALLS</th><th className="strike" style={{background:'rgba(0,212,255,0.05)'}}>STRIKE</th><th className="put-h" colSpan="7" style={{textAlign:'center',borderLeft:'1px solid var(--border)'}}>PUTS</th></tr>
+          <tr>{['OI','Vol','IV%','Delta','Mark ₹','Bid ₹','Trade'].map(h=><th key={'c'+h} className="call-h">{h}</th>)}<th className="strike" style={{background:'rgba(0,212,255,0.05)',borderLeft:'1px solid var(--border)',borderRight:'1px solid var(--border)'}}>USD / INR</th>{['Trade','Ask ₹','Mark ₹','Delta','IV%','Vol','OI'].map(h=><th key={'p'+h} className="put-h">{h}</th>)}</tr>
+        </thead><tbody>{(()=>{
+          const maxCallOI = Math.max(1,...filteredChain.map(r=>r.call?.oi||0));
+          const maxPutOI = Math.max(1,...filteredChain.map(r=>r.put?.oi||0));
+          return filteredChain.map(row=>{
+            const isAtm = btcPrice && Math.abs(row.strike-btcPrice)/btcPrice < 0.02;
+            const c=row.call, p=row.put, S=btcPrice||1;
+            const inrPrice = v => v!=null ? fmtINR(markToINR(v,S)) : '—';
+            const prem1lot = v => v!=null ? fmtINR(premiumINR(v,S,1)) : '—';
+            return <tr key={row.strike} className={isAtm?'atm-row':''}>
+              <td className="call-col" style={{minWidth:70}}>{c?.oi!=null ? <div style={{display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end'}}><div style={{width:28,height:4,background:'var(--border)',borderRadius:2,overflow:'hidden'}}><div style={{width:Math.round(c.oi/maxCallOI*100)+'%',height:'100%',background:'var(--call-green)',borderRadius:2}}/></div>{fmtK(c.oi)}</div>:'—'}</td>
+              <td className="call-col">{c?.vol!=null?fmtK(c.vol):'—'}</td><td className="call-col">{c?.iv!=null?fmt(c.iv,1)+'%':'—'}</td><td className="call-col">{c?.delta!=null?fmt(c.delta,3):'—'}</td>
+              <td className="call-col" style={{fontWeight:600}}>{c?.mark!=null ? <div><div>{inrPrice(c.mark)}</div><div style={{fontSize:10,color:'var(--text-muted)'}}>lot: {prem1lot(c.mark)}</div></div>:'—'}</td>
+              <td className="call-col">{inrPrice(c?.bid)}</td>
+              <td className="call-col" style={{borderRight:'1px solid var(--border)'}}>{c?.mark!=null ? <div style={{display:'flex',alignItems:'center',gap:5,justifyContent:'flex-end'}}><div style={{opacity:isZeroOI(c)?0.45:1}}><div>{inrPrice(c.mark)}</div><div style={{fontSize:10,color:isZeroOI(c)?'var(--loss)':'var(--call-green)'}}>{isZeroOI(c)?'0 OI':('lot: '+prem1lot(c.mark))}</div></div>{isZeroOI(c) ? <button className="trade-btn-call" disabled title="OI = 0 (Locked)">🔒</button> : <button className="trade-btn-call" onClick={()=>prefillTrade(row.callName,'call',row.strike)} title="Trade at mark price">+</button>}</div>:'—'}</td>
+              <td className="strike" style={{borderLeft:'1px solid var(--border)',borderRight:'1px solid var(--border)',background:isAtm?'rgba(0,212,255,0.06)':undefined}}>{isAtm && <span style={{position:'absolute',left:4,top:'50%',transform:'translateY(-50%)',color:'var(--accent-cyan)',fontSize:9}}>◀▶</span>}<div>${row.strike.toLocaleString()}</div><div style={{fontSize:10,color:'var(--text-muted)'}}>{fmtINR(row.strike*FIXED_INR_RATE)}</div></td>
+              <td className="put-col">{p?.mark!=null ? <div style={{display:'flex',alignItems:'center',gap:5}}>{isZeroOI(p) ? <button className="trade-btn-put" disabled title="OI = 0 (Locked)">🔒</button> : <button className="trade-btn-put" onClick={()=>prefillTrade(row.putName,'put',row.strike)} title="Trade at mark price">+</button>}<div style={{opacity:isZeroOI(p)?0.45:1}}><div>{inrPrice(p.mark)}</div><div style={{fontSize:10,color:isZeroOI(p)?'var(--loss)':'var(--put-red)'}}>{isZeroOI(p)?'0 OI':('lot: '+prem1lot(p.mark))}</div></div></div>:'—'}</td>
+              <td className="put-col">{inrPrice(p?.ask)}</td><td className="put-col" style={{fontWeight:600}}>{p?.mark!=null ? <div><div>{inrPrice(p.mark)}</div><div style={{fontSize:10,color:'var(--text-muted)'}}>lot: {prem1lot(p.mark)}</div></div>:'—'}</td>
+              <td className="put-col">{p?.delta!=null?fmt(p.delta,3):'—'}</td><td className="put-col">{p?.iv!=null?fmt(p.iv,1)+'%':'—'}</td><td className="put-col">{p?.vol!=null?fmtK(p.vol):'—'}</td>
+              <td className="put-col" style={{minWidth:70}}>{p?.oi!=null ? <div style={{display:'flex',alignItems:'center',gap:4}}>{fmtK(p.oi)}<div style={{width:28,height:4,background:'var(--border)',borderRadius:2,overflow:'hidden'}}><div style={{width:Math.round(p.oi/maxPutOI*100)+'%',height:'100%',background:'var(--put-red)',borderRadius:2}}/></div></div>:'—'}</td>
+            </tr>;
+          });
+        })()}</tbody></table></div>}
+        {optionChain.length>0 && <div style={{padding:'8px 20px 16px',fontSize:11,color:'var(--text-muted)',display:'flex',gap:20,flexWrap:'wrap'}}><span>OI = 0 strikes are locked and non-clickable.</span><span>Mark ₹ = option price in rupees</span><span>Lot premium = Mark ₹ × 0.01</span><span style={{color:'var(--accent-cyan)'}}>◀▶ = ATM strike</span></div>}
+      </>}
+
+      {tab==='account' && <>
+        <div className="section-header"><span className="section-title">Open Positions</span><button className="btn btn-primary" onClick={()=>{setTradeForm({instrument:'',optType:'call',action:'sell',strike:'',qty:1,price:'',sl:'',tp:''});setTradeError('');setShowTradeModal(true);}}>+ New Trade</button></div>
+        {account.positionsWithMark.length===0 ? <div className="state-box"><span style={{color:'var(--text-muted)'}}>No open positions. Go to Option Chain and click + on any strike.</span></div> : <div style={{padding:'0 20px 20px'}}>{account.positionsWithMark.map(pos=>{
+          const pc=(pos.pnl?.pnlINR||0)>=0?'var(--profit)':'var(--loss)'; const ps=(pos.pnl?.pnlINR||0)>=0?'+':'';
+          const entryINR=markToINR(pos.entryPriceBTC,pos.btcPriceAtEntry); const markINR_=pos.markBTC!=null?markToINR(pos.markBTC,btcPrice||pos.btcPriceAtEntry):null; const premPaidRec=premiumINR(pos.entryPriceBTC,pos.btcPriceAtEntry,pos.qty);
+          return <div key={pos.id} style={{background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:10,padding:18,marginBottom:12}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,flexWrap:'wrap'}}><span style={{fontFamily:'Syne',fontSize:14,fontWeight:700,color:'var(--accent-cyan)'}}>{pos.instrument}</span><span className={`badge badge-${pos.optType}`}>{pos.optType.toUpperCase()}</span><span className={`badge badge-${pos.action==='buy'?'buy':'sell'}`}>{pos.action==='buy'?'LONG':'SHORT'}</span><span style={{color:'var(--text-muted)',fontSize:11}}>{pos.expiry} · {pos.qty} lot{pos.qty>1?'s':''}</span><div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}><button className="btn btn-outline" style={{fontSize:11}} onClick={()=>openCloseModal(pos)}>Close Position</button><span style={{fontSize:10,color:'var(--text-muted)'}}>Auto-settles on expiry</span></div></div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:10}}>{[
+              ['Strike',`$${pos.strike.toLocaleString()} / ${fmtINR(pos.strike*FIXED_INR_RATE)}`,'',''],['Entry Option Price',fmtINR(entryINR),`lot prem: ${fmtINR(premPaidRec)}`,''],['Current Mark',markINR_!=null?fmtINR(markINR_):'—',markINR_!=null?`lot: ${fmtINR(premiumINR(pos.markBTC,btcPrice||pos.btcPriceAtEntry,pos.qty))}`:'live price',''],['Unrealized P&L',ps+fmtINR(pos.pnl?.pnlINR),ps+(pos.pnl?.pnlUSD!=null?`${fmt(pos.pnl.pnlUSD,2)}`:''),pc],['SL / TP',`${pos.slINR?fmtINR(pos.slINR):'OFF'} / ${pos.tpINR?fmtINR(pos.tpINR):'OFF'}`,'auto close levels',''],['Margin Locked',fmtINR(pos.marginLockedINR || 0),pos.action==='sell'?pos.margin?.marginType:'No margin lock for long options','var(--accent-amber)'],['Maint. Margin',fmtINR(pos.margin?.maintenanceMarginINR),'approx floor',''],['Max Profit',pos.action==='sell'?fmtINR(pos.margin?.maxProfitINR):'Unlimited',pos.action==='sell'?'if expires worthless':'no cap on calls',pos.action==='sell'?'var(--profit)':'var(--accent-cyan)'],['Max Loss',pos.action==='buy'?fmtINR(pos.margin?.maxLossINR):'Unlimited',pos.action==='buy'?'premium paid':'naked short risk',pos.action==='buy'?'var(--loss)':'var(--accent-red)']
+            ].map(([label,val,sub,color])=><div key={label} style={{background:'var(--bg-elevated)',borderRadius:6,padding:'10px 12px',border:'1px solid var(--border)'}}><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:3}}>{label}</div><div style={{fontSize:13,fontWeight:600,color:color||'var(--text-primary)'}}>{val}</div>{sub && <div style={{fontSize:10,color:'var(--text-muted)',marginTop:2}}>{sub}</div>}</div>)}</div>
+          </div>})}</div>}
+      </>}
+
+      {tab==='history' && <>
+        <div className="section-header"><span className="section-title">Trade History</span><span style={{color:'var(--text-muted)',fontSize:12}}>{tradeHistory.length} closed trades</span></div>
+        {tradeHistory.length===0 ? <div className="state-box"><span style={{color:'var(--text-muted)'}}>No closed trades yet.</span></div> : <div className="table-wrap" style={{margin:'0 20px 20px'}}><table><thead><tr>{['Instrument','Type','Side','Lots','Entry ₹','Exit ₹','Premium','P&L INR','P&L USD','Note','Closed At'].map(h=><th key={h} style={{textAlign:'left',fontSize:10}}>{h}</th>)}</tr></thead><tbody>{[...tradeHistory].reverse().map(t=>{ const pc=(t.realizedPnLINR||0)>=0?'var(--profit)':'var(--loss)'; const ps=(t.realizedPnLINR||0)>=0?'+':''; return <tr key={t.id}><td style={{textAlign:'left',color:'var(--accent-cyan)',fontSize:11}}>{t.instrument}</td><td style={{textAlign:'left'}}><span className={`badge badge-${t.optType}`}>{t.optType.toUpperCase()}</span></td><td style={{textAlign:'left'}}><span className={`badge badge-${t.action==='buy'?'buy':'sell'}`}>{t.action==='buy'?'LONG':'SHORT'}</span></td><td style={{textAlign:'left'}}>{t.qty}</td><td style={{textAlign:'left'}}>{fmtINR(markToINR(t.entryPriceBTC,t.btcPriceAtEntry))}</td><td style={{textAlign:'left'}}>{fmtINR(markToINR(t.exitPriceBTC, t.btcPriceAtExit || btcPrice || t.btcPriceAtEntry))}</td><td style={{textAlign:'left',color:t.action==='sell'?'var(--profit)':'var(--loss)'}}>{fmtINR(premiumINR(t.entryPriceBTC,t.btcPriceAtEntry,t.qty))}</td><td style={{textAlign:'left'}}><span style={{color:pc,fontWeight:600}}>{ps}{fmtINR(t.realizedPnLINR)}</span></td><td style={{textAlign:'left'}}><span style={{color:pc}}>{ps}${fmt(t.realizedPnLUSD,2)}</span></td><td style={{textAlign:'left',color:'var(--text-muted)',fontSize:11}}>{t.note||'—'}</td><td style={{textAlign:'left',color:'var(--text-muted)',fontSize:11}}>{new Date(t.exitTime).toLocaleString()}</td></tr>})}</tbody></table></div>}
+      </>}
+
+      {tab==='ledger' && <>
+        <div className="section-header"><span className="section-title">Account Ledger</span><div style={{background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 16px'}}><span style={{color:'var(--text-muted)',fontSize:10,textTransform:'uppercase',letterSpacing:'0.8px'}}>Running Balance</span><div style={{fontFamily:'Syne',fontSize:16,fontWeight:700,color:'var(--accent-cyan)'}}>{fmtINR(account.cashBalance)}</div></div></div>
+        <div className="table-wrap" style={{margin:'0 20px 20px'}}><table><thead><tr>{['#','Time','Type','Description','Amount INR','Running Balance'].map(h=><th key={h} style={{textAlign:'left',fontSize:10}}>{h}</th>)}</tr></thead><tbody>{[...ledger].reverse().map((e,i)=>{ const idx=ledger.indexOf(e); const bal=ledger.slice(0,idx+1).reduce((s,x)=>s+x.amountINR,0); const isPos=e.amountINR>=0; return <tr key={e.id}><td style={{textAlign:'left',color:'var(--text-muted)',fontSize:11}}>{ledger.length-i}</td><td style={{textAlign:'left',color:'var(--text-muted)',fontSize:11}}>{new Date(e.time).toLocaleString()}</td><td style={{textAlign:'left'}}><span style={{display:'inline-block',padding:'2px 7px',borderRadius:4,fontSize:10,fontWeight:600,background:isPos?'rgba(0,230,118,0.1)':'rgba(255,68,68,0.1)',color:isPos?'var(--profit)':'var(--loss)'}}>{ledgerLabel[e.type]||e.type}</span></td><td style={{textAlign:'left',color:'var(--text-secondary)',fontSize:12}}>{e.desc}</td><td style={{textAlign:'left',fontWeight:600,color:isPos?'var(--profit)':'var(--loss)'}}>{isPos?'+':''}{fmtINR(e.amountINR)}</td><td style={{textAlign:'left',color:'var(--text-primary)',fontWeight:500}}>{fmtINR(bal)}</td></tr>})}</tbody></table></div>
+      </>}
+
+      {showTradeModal && <div className="modal-overlay" onClick={()=>setShowTradeModal(false)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:560}}>
+        <div className="modal-title">Place Paper Trade</div>
+        <div style={{background:'rgba(0,212,255,0.06)',border:'1px solid rgba(0,212,255,0.15)',borderRadius:6,padding:'8px 12px',marginBottom:14,fontSize:11,color:'var(--text-secondary)'}}>1 USD = ₹{FIXED_INR_RATE} · 1 lot = {LOT_SIZE_BTC} {selectedAsset} · Premium = Mark_USD × lot_size × 85</div>
+        <div className="form-group"><label className="form-label">Instrument Name</label><input className="form-input" value={tradeForm.instrument} onChange={e=>setTradeForm({...tradeForm,instrument:e.target.value})} placeholder={`e.g. ${selectedAsset}-30MAY26-90000-C`}/></div>
+        <div className="form-row"><div className="form-group"><label className="form-label">Option Type</label><select className="form-input" value={tradeForm.optType} onChange={e=>setTradeForm({...tradeForm,optType:e.target.value})}><option value="call">Call</option><option value="put">Put</option></select></div><div className="form-group"><label className="form-label">Direction</label><select className="form-input" value={tradeForm.action} onChange={e=>setTradeForm({...tradeForm,action:e.target.value})}><option value="sell">Sell / Write</option><option value="buy">Buy / Long</option></select></div></div>
+        <div className="form-row"><div className="form-group"><label className="form-label">Strike Price USD</label><input className="form-input" type="number" value={tradeForm.strike} onChange={e=>setTradeForm({...tradeForm,strike:e.target.value})}/></div><div className="form-group"><label className="form-label">Lots</label><input className="form-input" type="number" min="1" value={tradeForm.qty} onChange={e=>setTradeForm({...tradeForm,qty:e.target.value})}/></div></div>
+        <div className="form-group"><label className="form-label">Price in {selectedAsset}</label><input className="form-input" type="number" step="0.00001" value={tradeForm.price} onChange={e=>setTradeForm({...tradeForm,price:e.target.value})}/>{tradeForm.price && btcPrice && <div style={{marginTop:5,fontSize:11,color:'var(--text-muted)'}}>= {fmtINR(markToINR(parseFloat(tradeForm.price),btcPrice))} per option · <span style={{color:'var(--accent-amber)',marginLeft:4}}>{fmtINR(premiumINR(parseFloat(tradeForm.price),btcPrice,parseInt(tradeForm.qty)||1))} for {parseInt(tradeForm.qty)||1} lot{(parseInt(tradeForm.qty)||1)>1?'s':''}</span></div>}</div>
+        <div className="form-row"><div className="form-group"><label className="form-label">Stop Loss ₹</label><input className="form-input" type="number" min="0" value={tradeForm.sl || ''} onChange={e=>setTradeForm({...tradeForm,sl:e.target.value})} placeholder="e.g. 500"/></div><div className="form-group"><label className="form-label">Take Profit ₹</label><input className="form-input" type="number" min="0" value={tradeForm.tp || ''} onChange={e=>setTradeForm({...tradeForm,tp:e.target.value})} placeholder="e.g. 300"/></div></div>
+        <div style={{marginTop:-8,marginBottom:14,fontSize:10,color:'var(--text-muted)'}}>Leave SL/TP blank to disable. SL triggers at negative P&L, TP at positive P&L.</div>
+        {tradePreview && <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-bright)',borderRadius:8,padding:14,marginBottom:14}}><div style={{fontFamily:'Syne',fontSize:12,fontWeight:700,color:'var(--accent-cyan)',marginBottom:10}}>MARGIN & RISK PREVIEW</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>{[['Initial Margin Required',fmtINR(tradePreview.initialMarginINR),'var(--accent-amber)'],['Maintenance Margin',fmtINR(tradePreview.maintenanceMarginINR),'var(--text-secondary)'],['Available Balance',fmtINR(account.availableBalance),account.availableBalance>=tradePreview.initialMarginINR?'var(--profit)':'var(--loss)'],['Balance After Trade',fmtINR(account.availableBalance-(tradeForm.action==='sell'?tradePreview.initialMarginINR:tradePreview.premiumINR)),account.availableBalance-(tradeForm.action==='sell'?tradePreview.initialMarginINR:tradePreview.premiumINR)>0?'var(--text-primary)':'var(--loss)'],['Margin Type',tradePreview.marginType,'var(--text-muted)'],['Max Profit',tradeForm.action==='sell'?fmtINR(tradePreview.maxProfitINR):'Unlimited','var(--profit)'],['Max Loss',tradeForm.action==='buy'?fmtINR(tradePreview.maxLossINR):'Unlimited naked','var(--loss)'],['Premium '+(tradeForm.action==='sell'?'Received':'Paid'),fmtINR(tradePreview.premiumINR),tradeForm.action==='sell'?'var(--profit)':'var(--loss)']].map(([l,v,c])=><div key={l} style={{background:'var(--bg-card)',borderRadius:5,padding:'8px 10px'}}><div style={{fontSize:10,color:'var(--text-muted)',marginBottom:2}}>{l}</div><div style={{fontSize:13,fontWeight:600,color:c}}>{v}</div></div>)}</div></div>}
+        {tradeError && <div style={{color:'var(--loss)',fontSize:12,marginBottom:10,padding:'8px 12px',background:'rgba(255,68,68,0.1)',borderRadius:6}}>⚠ {tradeError}</div>}
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}><button className="btn btn-outline" onClick={()=>setShowTradeModal(false)}>Cancel</button><button className={`btn ${tradeForm.action==='sell'?'btn-red':'btn-green'}`} onClick={executeTrade}>{tradeForm.action==='sell'?'▼ Sell / Write':'▲ Buy / Long'}</button></div>
+      </div></div>}
+
+      {showCloseModal && closingPosition && <div className="modal-overlay" onClick={()=>setShowCloseModal(false)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:420}}>
+        <div className="modal-title">Close Position</div><div style={{color:'var(--accent-cyan)',fontWeight:600,marginBottom:4}}>{closingPosition.instrument}</div><div style={{color:'var(--text-muted)',fontSize:11,marginBottom:16}}>Entry: {fmtINR(markToINR(closingPosition.entryPriceBTC, closingPosition.btcPriceAtEntry))} per option</div>
+        <div className="form-group"><label className="form-label">Exit Price in {currencyFromInstrument(closingPosition.instrument)}</label><input className="form-input" type="number" step="0.00001" value={closePrice} onChange={e=>setClosePrice(e.target.value)}/>{closePrice && btcPrice && <div style={{marginTop:5,fontSize:11,color:'var(--text-muted)'}}>= {fmtINR(markToINR(parseFloat(closePrice),btcPrice))} per option</div>}</div>
+        {closePrice && btcPrice && (()=>{ const pnl=calcPnL({action:closingPosition.action,entryPriceBTC:closingPosition.entryPriceBTC,exitPriceBTC:parseFloat(closePrice),qty:closingPosition.qty,btcPrice}); const pc=pnl.pnlINR>=0?'var(--profit)':'var(--loss)'; return <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:8,padding:14,marginBottom:14}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>{[['Realized P&L INR',(pnl.pnlINR>=0?'+':'')+fmtINR(pnl.pnlINR),pc],['Realized P&L USD',(pnl.pnlUSD>=0?'+':'')+'$'+fmt(pnl.pnlUSD,2),pc],['Entry',fmtINR(markToINR(closingPosition.entryPriceBTC,closingPosition.btcPriceAtEntry)),''],['Exit',fmtINR(markToINR(parseFloat(closePrice),btcPrice)),'']].map(([l,v,c])=><div key={l} style={{background:'var(--bg-card)',borderRadius:5,padding:'8px 10px'}}><div style={{fontSize:10,color:'var(--text-muted)',marginBottom:2}}>{l}</div><div style={{fontSize:14,fontWeight:600,color:c||'var(--text-primary)'}}>{v}</div></div>)}</div></div>; })()}
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}><button className="btn btn-outline" onClick={()=>setShowCloseModal(false)}>Cancel</button><button className="btn btn-primary" onClick={executeClose} disabled={closeLoading}>{closeLoading ? 'Fetching Live Price…' : 'Confirm Close'}</button></div>
+      </div></div>}
+
+      <footer>⚠ For educational and paper-trading purposes only. Not financial advice. · OI = 0 strikes are locked. Prices/P&L stream via WebSocket; chain/OI syncs periodically. · BTC/ETH toggle enabled. · 1 USD = ₹85 · 1 lot = 0.01 coin.</footer>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
